@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPT内容页编辑器 - 多页面管理 · IndexedDB持久化 · 深空科技</title>
+    <style>
+        :root {
+            --deep-space: #080d1a;
+            --obsidian: #0c1119;
+            --titanium-silver: #a8b4c2;
+            --titanium-dim: #7b8899;
+            --accent-blue: #5b9bd5;
+            --text-primary: #e4e9f0;
+            --text-secondary: #bcc5d1;
+            --glass-bg-panel: rgba(18, 26, 42, 0.65);
+            --glass-blur: 18px;
+            --spacing: 18px;
+            --slide-width: 960px;
+            --slide-padding-h: 50px;
+            --slide-padding-top: 36px;
+            --title-main-size: 26px;
+            --title-sub-size: 16px;
+            --overview-size: 14px;
+            --detail-size: 13px;
+            --caption-size: 11px;
+            --overview-line-height: 1.7;
+            --detail-line-height: 1.6;
+            --border-color-overview: rgba(160, 190, 215, 0.22);
+            --border-color-detail: rgba(160, 190, 215, 0.22);
+            --border-color-image: rgba(160, 190, 215, 0.25);
+            --border-radius-image: 6px;
+            --overview-max-lines: 4;
+            --detail-max-lines: 5;
+            --card-title-size: 13px;
+            --card-body-size: 10.4px;
+            --card-body-ratio: 0.7;
+            --card-body-lines: 3;
+            --card-body-line-height: 1.5;
+            --panel-ratio: 0.44;
+            --card-count: 4;
+            --card-number-color: #5b9bd5;
+            --card-title-color: #d0d8e4;
+            --card-body-color: #a8b4c2;
+            --col-count: 3;
+            --col-gap: 14px;
+            --col-title-size: 13px;
+            --col-body-size: 10.4px;
+            --col-body-ratio: 0.7;
+            --col-body-line-height: 1.5;
+            --font-en: 'Times New Roman', 'Times', 'Georgia', serif;
+            --font-cn-title: 'Source Han Sans SC', 'HarmonyOS Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --font-cn-body: 'Source Han Sans SC', 'HarmonyOS Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --font-mixed: 'Times New Roman', 'Source Han Sans SC', 'HarmonyOS Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: radial-gradient(ellipse at 25% 20%, rgba(30, 60, 110, 0.35) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 65%, rgba(20, 50, 90, 0.28) 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 80%, rgba(10, 30, 60, 0.40) 0%, transparent 50%),
+                linear-gradient(175deg, #080d1a 0%, #0c1320 30%, #0a101c 60%, #0e1624 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            gap: 22px;
+            user-select: none;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 255, 255, 0.004) 2px, rgba(255, 255, 255, 0.004) 3px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255, 255, 255, 0.003) 2px, rgba(255, 255, 255, 0.003) 3px);
+            opacity: 0.5;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast {
+            pointer-events: auto;
+            background: rgba(22, 34, 55, 0.88);
+            backdrop-filter: blur(16px) saturate(1.6);
+            border: 1px solid rgba(180, 200, 220, 0.18);
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: #e0e6f0;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.4px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            animation: toastIn 0.35s ease-out, toastOut 0.35s ease-in 1.8s forwards;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast.success {
+            border-color: rgba(100, 200, 150, 0.4);
+        }
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes toastOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-16px);
+            }
+        }
+        .app-container {
+            display: flex;
+            gap: 22px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            max-width: 1500px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+        .slide-wrapper {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .slide-label {
+            font-size: 12px;
+            color: #8896a8;
+            letter-spacing: 0.6px;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-family: 'Segoe UI', 'PingFang SC', sans-serif;
+        }
+        .page-tabs-bar {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: rgba(18, 26, 42, 0.55);
+            backdrop-filter: blur(8px);
+            border-radius: 8px;
+            border: 1px solid rgba(180, 200, 220, 0.10);
+            flex-wrap: wrap;
+            max-width: var(--slide-width);
+            overflow-x: auto;
+            z-index: 5;
+        }
+        .page-tab {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11.5px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            border: 1.5px solid transparent;
+            background: rgba(25, 38, 58, 0.45);
+            color: #8896a8;
+            transition: all 0.2s;
+            font-family: 'Segoe UI', 'PingFang SC', sans-serif;
+            position: relative;
+        }
+        .page-tab:hover {
+            background: rgba(35, 50, 72, 0.60);
+            color: #bcc5d1;
+            border-color: rgba(180, 200, 220, 0.18);
+        }
+        .page-tab.active {
+            background: rgba(60, 130, 200, 0.30);
+            border-color: rgba(140, 190, 225, 0.35);
+            color: #e0e6f0;
+            box-shadow: 0 0 14px rgba(70, 140, 210, 0.18);
+            font-weight: 600;
+        }
+        .page-tab .tab-icon {
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .page-tab .tab-name {
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .page-tab .tab-delete {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            color: #e06060;
+            margin-left: 2px;
+            flex-shrink: 0;
+        }
+        .page-tab:hover .tab-delete {
+            opacity: 0.7;
+        }
+        .page-tab .tab-delete:hover {
+            opacity: 1;
+            background: rgba(220, 80, 80, 0.20);
+        }
+        .btn-add-page {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            border: 1.5px dashed rgba(180, 200, 220, 0.22);
+            background: rgba(25, 38, 58, 0.35);
+            color: #8896a8;
+            transition: all 0.25s;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .btn-add-page:hover {
+            background: rgba(45, 180, 130, 0.25);
+            border-color: rgba(100, 210, 170, 0.40);
+            color: #c0e8d8;
+            box-shadow: 0 0 16px rgba(50, 180, 130, 0.15);
+        }
+        .add-page-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 6px;
+            background: rgba(18, 28, 46, 0.92);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(180, 200, 220, 0.18);
+            border-radius: 8px;
+            padding: 4px;
+            z-index: 100;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+            min-width: 150px;
+        }
+        .add-page-menu.active {
+            display: block;
+        }
+        .add-page-menu-item {
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 11.5px;
+            color: #c5d0dd;
+            border-radius: 5px;
+            white-space: nowrap;
+            transition: all 0.2s;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .add-page-menu-item:hover {
+            background: rgba(60, 130, 200, 0.30);
+            color: #e0e6f0;
+        }
+        .add-page-menu-item .menu-icon {
+            font-size: 14px;
+            width: 18px;
+            text-align: center;
+        }
+        .slide-outer {
+            width: var(--slide-width);
+            aspect-ratio: 16 / 9;
+            background: var(--obsidian);
+            border-radius: 0;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(180, 200, 225, 0.10);
+            overflow: hidden;
+            position: relative;
+            flex-shrink: 0;
+            display: none;
+        }
+        .slide-outer.active {
+            display: block;
+        }
+        .slide {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at 50% 30%, rgba(25, 50, 90, 0.30) 0%, transparent 65%),
+                radial-gradient(ellipse at 20% 70%, rgba(15, 35, 65, 0.20) 0%, transparent 50%),
+                linear-gradient(180deg, #0c1420 0%, #0e1725 40%, #0b131f 100%);
+            display: flex;
+            flex-direction: column;
+            padding: var(--slide-padding-top) var(--slide-padding-h) var(--spacing);
+            position: relative;
+            font-family: var(--font-mixed);
+            color: var(--text-primary);
+        }
+        .slide::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border: 1px solid rgba(200, 215, 235, 0.04);
+            z-index: 10;
+        }
+        .title-bar {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-shrink: 0;
+            min-height: 36px;
+            position: relative;
+            z-index: 2;
+        }
+        .title-left {
+            display: flex;
+            align-items: baseline;
+            gap: 7px;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+        .title-number {
+            font-size: var(--title-main-size);
+            font-weight: 800;
+            color: var(--accent-blue);
+            white-space: nowrap;
+            letter-spacing: 0.8px;
+            font-family: var(--font-en);
+            cursor: text;
+            outline: none;
+            min-width: 1em;
+            text-shadow: 0 0 18px rgba(91, 155, 213, 0.35);
+        }
+        .title-main {
+            font-size: var(--title-main-size);
+            font-weight: 700;
+            color: #eef2f8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: text;
+            outline: none;
+            letter-spacing: 0.4px;
+            font-family: var(--font-cn-title);
+        }
+        .title-sub {
+            font-size: var(--title-sub-size);
+            font-weight: 400;
+            color: var(--titanium-silver);
+            white-space: nowrap;
+            flex-shrink: 0;
+            cursor: text;
+            outline: none;
+            text-align: right;
+            letter-spacing: 0.4px;
+            font-family: var(--font-cn-body);
+            opacity: 0.85;
+        }
+        .divider-zone {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            padding-top: var(--spacing);
+            padding-bottom: var(--spacing);
+            position: relative;
+            z-index: 2;
+        }
+        .divider-line {
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(160, 195, 225, 0.30) 5%, rgba(160, 195, 225, 0.45) 30%, rgba(180, 210, 235, 0.50) 50%, rgba(160, 195, 225, 0.45) 70%, rgba(160, 195, 225, 0.30) 95%, transparent 100%);
+            border-radius: 1px;
+        }
+        .overview-area {
+            flex-shrink: 0;
+            position: relative;
+            z-index: 2;
+            border: 1.5px solid transparent;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .overview-area.border-visible {
+            border-color: var(--border-color-overview);
+            background: rgba(20, 32, 52, 0.28);
+        }
+        .overview-content {
+            outline: none;
+            cursor: text;
+            font-size: var(--overview-size);
+            line-height: var(--overview-line-height);
+            color: var(--text-secondary);
+            padding: 7px 10px;
+            letter-spacing: 0.25px;
+            word-break: break-word;
+            font-family: var(--font-cn-body);
+            font-weight: 350;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: var(--overview-max-lines);
+            line-clamp: var(--overview-max-lines);
+        }
+        .overview-content:empty::before {
+            content: '在此输入概述文字...';
+            color: rgba(180, 195, 215, 0.35);
+            pointer-events: none;
+        }
+        .figure-group {
+            flex-grow: 1;
+            flex-shrink: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: var(--spacing);
+            padding-bottom: 0;
+            position: relative;
+            z-index: 2;
+            min-height: 40px;
+        }
+        .image-container {
+            flex-grow: 1;
+            flex-shrink: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            border: 1.5px solid transparent;
+            border-radius: var(--border-radius-image);
+            background: rgba(16, 26, 44, 0.50);
+            min-height: 30px;
+            cursor: pointer;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        .image-container.border-visible {
+            border-color: var(--border-color-image);
+        }
+        .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+            border-radius: calc(var(--border-radius-image) - 2px);
+        }
+        .image-placeholder {
+            color: rgba(170, 190, 210, 0.45);
+            font-size: 13px;
+            pointer-events: none;
+            position: absolute;
+            text-align: center;
+            font-family: var(--font-cn-body);
+            font-weight: 300;
+        }
+        .image-caption {
+            flex-shrink: 0;
+            text-align: center;
+            font-size: var(--caption-size);
+            color: var(--titanium-dim);
+            margin-top: 6px;
+            cursor: text;
+            outline: none;
+            letter-spacing: 0.25px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: var(--font-cn-body);
+            font-weight: 320;
+        }
+        .image-caption:empty::before {
+            content: '图示说明';
+            color: rgba(160, 180, 200, 0.35);
+            pointer-events: none;
+        }
+        .multi-col-row {
+            flex-grow: 1;
+            flex-shrink: 1;
+            display: flex;
+            gap: var(--col-gap);
+            padding-top: var(--spacing);
+            padding-bottom: 0;
+            position: relative;
+            z-index: 2;
+            min-height: 50px;
+            align-items: stretch;
+        }
+        .multi-col-group {
+            flex: 1 1 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            border: 1.5px solid transparent;
+            border-radius: 7px;
+            overflow: hidden;
+        }
+        .multi-col-group.border-visible {
+            border-color: var(--border-color-image);
+            background: rgba(20, 32, 52, 0.18);
+        }
+        .multi-col-figure {
+            flex-shrink: 1;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 30px;
+            overflow: hidden;
+        }
+        .multi-col-figure .image-container {
+            flex-grow: 1;
+            flex-shrink: 1;
+            width: 100%;
+            min-height: 25px;
+        }
+        .multi-col-figure .image-caption {
+            flex-shrink: 0;
+            margin-top: 4px;
+            font-size: 10px;
+        }
+        .multi-col-body {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 5px 6px 6px;
+            gap: 2px;
+            overflow: hidden;
+        }
+        .multi-col-body .col-body-title {
+            font-size: var(--col-title-size);
+            font-weight: 600;
+            color: var(--card-title-color);
+            cursor: text;
+            outline: none;
+            font-family: var(--font-cn-title);
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 0;
+        }
+        .multi-col-body .col-body-text {
+            font-size: var(--col-body-size);
+            line-height: var(--col-body-line-height);
+            color: var(--card-body-color);
+            cursor: text;
+            outline: none;
+            font-family: var(--font-cn-body);
+            font-weight: 340;
+            letter-spacing: 0.2px;
+            word-break: break-word;
+            overflow: visible;
+            flex-shrink: 0;
+        }
+        .multi-col-body .col-body-title:empty::before {
+            content: '标题';
+            color: rgba(160, 180, 200, 0.30);
+            pointer-events: none;
+        }
+        .multi-col-body .col-body-text:empty::before {
+            content: '正文内容...';
+            color: rgba(160, 180, 200, 0.25);
+            pointer-events: none;
+        }
+        .detail-area {
+            flex-shrink: 0;
+            position: relative;
+            z-index: 2;
+            border: 1.5px solid transparent;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: var(--spacing);
+        }
+        .detail-area.border-visible {
+            border-color: var(--border-color-detail);
+            background: rgba(20, 32, 52, 0.28);
+        }
+        .detail-content {
+            outline: none;
+            cursor: text;
+            font-size: var(--detail-size);
+            line-height: var(--detail-line-height);
+            color: var(--text-secondary);
+            padding: 7px 10px;
+            letter-spacing: 0.25px;
+            word-break: break-word;
+            font-family: var(--font-cn-body);
+            font-weight: 350;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: var(--detail-max-lines);
+            line-clamp: var(--detail-max-lines);
+        }
+        .detail-content:empty::before {
+            content: '在此输入详述文字...';
+            color: rgba(180, 195, 215, 0.35);
+            pointer-events: none;
+        }
+        .detail-row {
+            flex-grow: 1;
+            flex-shrink: 1;
+            display: flex;
+            gap: var(--spacing);
+            padding-top: var(--spacing);
+            padding-bottom: 0;
+            position: relative;
+            z-index: 2;
+            min-height: 50px;
+            align-items: stretch;
+        }
+        .detail-left {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .detail-right {
+            flex-grow: 1;
+            flex-shrink: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: stretch;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .content-panel {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 4px;
+            overflow: hidden;
+        }
+        .content-card {
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 1;
+            flex-grow: 1;
+            min-height: 0;
+            overflow: hidden;
+            padding: 2px 0;
+            border-radius: 4px;
+        }
+        .card-header {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            flex-shrink: 0;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .card-number {
+            font-size: var(--card-title-size);
+            font-weight: 700;
+            color: var(--card-number-color);
+            font-family: var(--font-en);
+            cursor: text;
+            outline: none;
+            min-width: 1.2em;
+            letter-spacing: 0.5px;
+        }
+        .card-title {
+            font-size: var(--card-title-size);
+            font-weight: 600;
+            color: var(--card-title-color);
+            cursor: text;
+            outline: none;
+            font-family: var(--font-cn-title);
+            letter-spacing: 0.3px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-body {
+            font-size: var(--card-body-size);
+            line-height: var(--card-body-line-height);
+            color: var(--card-body-color);
+            cursor: text;
+            outline: none;
+            font-family: var(--font-cn-body);
+            font-weight: 340;
+            letter-spacing: 0.2px;
+            word-break: break-word;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: var(--card-body-lines);
+            line-clamp: var(--card-body-lines);
+            flex-shrink: 1;
+            min-height: 0;
+        }
+        .card-body:empty::before {
+            content: '正文内容...';
+            color: rgba(160, 180, 200, 0.30);
+            pointer-events: none;
+        }
+        .props-panel {
+            flex: 0 0 385px;
+            background: var(--glass-bg-panel);
+            backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+            border-radius: 14px;
+            border: 1px solid rgba(200, 215, 235, 0.10);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            padding: 22px 18px;
+            font-size: 13px;
+            max-height: 85vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: sticky;
+            top: 20px;
+            z-index: 20;
+            color: #d0d8e2;
+        }
+        .props-panel::-webkit-scrollbar { width: 5px; }
+        .props-panel::-webkit-scrollbar-thumb { background: rgba(180, 200, 220, 0.18); border-radius: 6px; }
+        .props-panel h3 {
+            font-size: 15px;
+            font-weight: 650;
+            color: #e0e6f0;
+            margin: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(200, 215, 235, 0.10);
+            letter-spacing: 0.5px;
+        }
+        .props-panel h4 { font-size: 12.5px; font-weight: 600; color: #c5d0dd; margin: 0 0 4px; }
+        .prop-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 9px 11px;
+            background: rgba(22, 34, 55, 0.40);
+            border-radius: 9px;
+            border: 1px solid rgba(180, 200, 220, 0.06);
+            backdrop-filter: blur(4px);
+        }
+        .prop-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .prop-row label { font-size: 11px; color: #b0bcc9; white-space: nowrap; font-weight: 450; min-width: 45px; }
+        .prop-row input[type="number"] {
+            width: 58px;
+            padding: 4px 6px;
+            border: 1px solid rgba(180, 200, 220, 0.18);
+            border-radius: 5px;
+            font-size: 11px;
+            text-align: center;
+            background: rgba(15, 25, 42, 0.60);
+            color: #d0d8e2;
+            outline: none;
+        }
+        .prop-row input[type="color"] {
+            width: 30px;
+            height: 22px;
+            border: 1px solid rgba(180, 200, 220, 0.20);
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 1px;
+            background: rgba(15, 25, 42, 0.50);
+        }
+        .prop-row input[type="range"] { flex-grow: 1; accent-color: #5b9bd5; }
+        .toggle-switch { position: relative; width: 38px; height: 20px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(100, 120, 150, 0.45);
+            border-radius: 20px;
+            transition: 0.3s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background: #d5dde6;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .toggle-switch input:checked+.toggle-slider { background: rgba(75, 140, 210, 0.70); box-shadow: 0 0 12px rgba(70, 140, 210, 0.25); }
+        .toggle-switch input:checked+.toggle-slider::before { transform: translateX(16px); background: #ffffff; }
+        .info-tag {
+            font-size: 9.5px;
+            color: #8896a8;
+            background: rgba(20, 32, 50, 0.50);
+            padding: 2px 7px;
+            border-radius: 9px;
+            white-space: nowrap;
+            font-family: 'SF Mono', 'Consolas', 'Menlo', monospace;
+        }
+        .btn {
+            padding: 7px 13px;
+            border: 1px solid rgba(180, 200, 220, 0.15);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11.5px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            backdrop-filter: blur(6px);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-align: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'PingFang SC', sans-serif;
+        }
+        .btn-primary { background: rgba(60, 130, 200, 0.40); color: #e8eef6; border-color: rgba(140, 190, 225, 0.25); }
+        .btn-primary:hover { background: rgba(70, 145, 215, 0.55); }
+        .btn-download { background: rgba(45, 180, 130, 0.38); color: #e0f5ed; border-color: rgba(100, 210, 170, 0.30); font-weight: 600; font-size: 12.5px; padding: 9px 16px; }
+        .btn-download:hover { background: rgba(55, 200, 145, 0.50); }
+        .btn-download:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-outline { background: rgba(20, 32, 50, 0.45); border: 1.5px solid rgba(180, 200, 220, 0.16); color: #c5d0dd; }
+        .btn-outline:hover { background: rgba(30, 44, 65, 0.55); }
+        .btn-sm { padding: 4px 8px; font-size: 10px; border-radius: 4px; }
+        .file-upload-label { display: block; cursor: pointer; padding: 7px 12px; background: rgba(20, 32, 50, 0.40); border: 1.5px dashed rgba(180, 200, 220, 0.18); border-radius: 7px; font-size: 11.5px; color: #b0bcc9; text-align: center; }
+        .file-upload-label input { display: none; }
+        .selected-text-indicator { font-size: 10px; color: #7db8e0; display: none; align-items: center; gap: 4px; }
+        .selected-text-indicator.active { display: flex; }
+        .indicator-dot { width: 6px; height: 6px; background: #7db8e0; border-radius: 50%; box-shadow: 0 0 8px rgba(120, 180, 220, 0.6); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(4, 8, 18, 0.70); backdrop-filter: blur(6px); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-dialog { background: rgba(18, 28, 46, 0.80); backdrop-filter: blur(22px) saturate(1.5); border-radius: 14px; padding: 26px; width: 92%; max-width: 720px; max-height: 82vh; display: flex; flex-direction: column; gap: 12px; border: 1px solid rgba(200, 215, 235, 0.10); }
+        .modal-dialog textarea { flex-grow: 1; min-height: 300px; font-family: 'SF Mono', 'Consolas', 'Menlo', monospace; font-size: 13px; padding: 14px; border: 1px solid rgba(180, 200, 220, 0.18); border-radius: 8px; background: rgba(12, 20, 34, 0.65); color: #d0d8e2; resize: vertical; outline: none; white-space: pre-wrap; }
+        .floating-color-picker { position: fixed; z-index: 5000; background: rgba(20, 30, 48, 0.92); backdrop-filter: blur(14px) saturate(1.6); border: 1px solid rgba(180, 200, 220, 0.20); border-radius: 10px; padding: 10px 12px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6); display: none; flex-direction: column; gap: 8px; min-width: 170px; pointer-events: auto; animation: popIn 0.2s ease-out; }
+        .floating-color-picker.active { display: flex; }
+        @keyframes popIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .floating-color-picker .preset-colors { display: flex; flex-wrap: wrap; gap: 6px; }
+        .floating-color-picker .preset-swatch { width: 22px; height: 22px; border-radius: 5px; cursor: pointer; border: 1.5px solid rgba(200, 215, 235, 0.20); transition: transform 0.15s; flex-shrink: 0; }
+        .floating-color-picker .preset-swatch:hover { transform: scale(1.18); border-color: rgba(220, 235, 250, 0.55); }
+        .floating-color-picker .picker-row { display: flex; align-items: center; gap: 8px; }
+        .floating-color-picker .picker-row label { font-size: 10px; color: #b0bcc9; }
+        .floating-color-picker .picker-row input[type="color"] { width: 28px; height: 24px; border: 1px solid rgba(180, 200, 220, 0.22); border-radius: 4px; cursor: pointer; background: rgba(15, 25, 42, 0.50); }
+        .floating-color-picker .btn-reset-color { font-size: 10px; padding: 3px 8px; border-radius: 4px; cursor: pointer; border: 1px solid rgba(180, 200, 220, 0.15); background: rgba(30, 42, 60, 0.50); color: #c5d0dd; }
+        .floating-color-picker .btn-reset-color:hover { background: rgba(50, 65, 85, 0.60); color: #e0e6f0; }
+        @media (max-width: 1420px) { .app-container { flex-direction: column; align-items: center; } .props-panel { position: relative; top: auto; width: 100%; max-width: 700px; max-height: none; } }
+    </style>
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="floating-color-picker" id="floatingColorPicker">
+        <div class="preset-colors" id="presetColors">
+            <span class="preset-swatch" style="background:#ffffff;" data-color="#ffffff"></span>
+            <span class="preset-swatch" style="background:#bcc5d1;" data-color="#bcc5d1"></span>
+            <span class="preset-swatch" style="background:#5b9bd5;" data-color="#5b9bd5"></span>
+            <span class="preset-swatch" style="background:#7db8e0;" data-color="#7db8e0"></span>
+            <span class="preset-swatch" style="background:#f0c060;" data-color="#f0c060"></span>
+            <span class="preset-swatch" style="background:#60c080;" data-color="#60c080"></span>
+            <span class="preset-swatch" style="background:#e06060;" data-color="#e06060"></span>
+            <span class="preset-swatch" style="background:#c080e0;" data-color="#c080e0"></span>
+            <span class="preset-swatch" style="background:#e0e0e0;" data-color="#e0e0e0"></span>
+            <span class="preset-swatch" style="background:#8896a8;" data-color="#8896a8"></span>
+        </div>
+        <div class="picker-row">
+            <label>自定义</label>
+            <input type="color" id="floatingColorInput" value="#bcc5d1">
+            <button class="btn-reset-color" id="resetFloatingColor">清除</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <div class="slide-wrapper">
+            <span class="slide-label" id="slideLabel">📄 第1页 · 左配图右多文 · 16:9</span>
+            <div class="page-tabs-bar" id="pageTabsBar">
+                <div class="btn-add-page" id="btnAddPage" title="新建页面">+</div>
+                <div class="add-page-menu" id="addPageMenu">
+                    <div class="add-page-menu-item" data-tpl="v1"><span class="menu-icon">📊</span>上文下图</div>
+                    <div class="add-page-menu-item" data-tpl="v2"><span class="menu-icon">📋</span>左配图右多文</div>
+                    <div class="add-page-menu-item" data-tpl="v3"><span class="menu-icon">📑</span>上文中下文图</div>
+                    <div class="add-page-menu-item" data-tpl="v4"><span class="menu-icon">🗂️</span>多列图文</div>
+                </div>
+            </div>
+            <div class="slide-outer" id="slideOuterV1"><div class="slide" id="slideV1"><div class="title-bar"><div class="title-left"><span class="title-number" contenteditable="true" id="t1Num">01</span><span class="title-main" contenteditable="true" id="t1Main">项目概述与核心数据</span></div><span class="title-sub" contenteditable="true" id="t1Sub">2024年度报告</span></div><div class="divider-zone"><div class="divider-line" id="divLine1"></div></div><div class="overview-area border-visible" id="ovArea1"><div class="overview-content" contenteditable="true" id="ovContent1">本年度项目在技术创新与市场拓展方面取得显著进展。</div></div><div class="figure-group" id="fgV1"><div class="image-container border-visible" id="imgContainer1"><img id="mainImage1" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='340'%3E%3Crect fill='%23111d30' width='600' height='340' rx='6'/%3E%3Ctext fill='%235a7a9a' font-family='sans-serif' font-size='16' text-anchor='middle' x='300' y='160'%3E高清大图%3C/text%3E%3C/svg%3E" alt="占位图"><span class="image-placeholder" style="display:none;">点击上传</span></div><div class="image-caption" contenteditable="true" id="cap1">图1：年度核心数据趋势</div></div></div></div>
+            <div class="slide-outer active" id="slideOuterV2"><div class="slide" id="slideV2"><div class="title-bar"><div class="title-left"><span class="title-number" contenteditable="true" id="t2Num">02</span><span class="title-main" contenteditable="true" id="t2Main">核心能力与解决方案</span></div><span class="title-sub" contenteditable="true" id="t2Sub">2024年度报告</span></div><div class="divider-zone"><div class="divider-line" id="divLine2"></div></div><div class="overview-area border-visible" id="ovArea2"><div class="overview-content" contenteditable="true" id="ovContent2">我们提供全方位的技术解决方案，涵盖四大核心能力模块。</div></div><div class="detail-row" id="detailRow"><div class="detail-left" id="detailLeft"><div class="image-container border-visible" id="imgContainer2"><img id="mainImage2" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='340'%3E%3Crect fill='%23111d30' width='400' height='340' rx='6'/%3E%3Ctext fill='%235a7a9a' font-family='sans-serif' font-size='14' text-anchor='middle' x='200' y='160'%3E高清大图%3C/text%3E%3C/svg%3E" alt="占位图"><span class="image-placeholder" style="display:none;">点击上传</span></div><div class="image-caption" contenteditable="true" id="cap2">图2：解决方案架构示意</div></div><div class="detail-right" id="detailRight"><div class="content-panel" id="contentPanel"></div></div></div></div></div>
+            <div class="slide-outer" id="slideOuterV3"><div class="slide" id="slideV3"><div class="title-bar"><div class="title-left"><span class="title-number" contenteditable="true" id="t3Num">03</span><span class="title-main" contenteditable="true" id="t3Main">深度解析与未来展望</span></div><span class="title-sub" contenteditable="true" id="t3Sub">2024年度报告</span></div><div class="divider-zone"><div class="divider-line" id="divLine3"></div></div><div class="overview-area border-visible" id="ovArea3"><div class="overview-content" contenteditable="true" id="ovContent3">本部分将深入剖析核心技术优势，并结合行业趋势展望未来发展方向。</div></div><div class="figure-group" id="fgV3"><div class="image-container border-visible" id="imgContainer3"><img id="mainImage3" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='340'%3E%3Crect fill='%23111d30' width='600' height='340' rx='6'/%3E%3Ctext fill='%235a7a9a' font-family='sans-serif' font-size='16' text-anchor='middle' x='300' y='160'%3E高清大图%3C/text%3E%3C/svg%3E" alt="占位图"><span class="image-placeholder" style="display:none;">点击上传</span></div><div class="image-caption" contenteditable="true" id="cap3">图3：技术架构与趋势分析</div></div><div class="detail-area border-visible" id="detailAreaV3"><div class="detail-content" contenteditable="true" id="detailContentV3">基于当前数据模型，我们预测未来三年行业复合增长率将保持在15%以上。</div></div></div></div>
+            <div class="slide-outer" id="slideOuterV4"><div class="slide" id="slideV4"><div class="title-bar"><div class="title-left"><span class="title-number" contenteditable="true" id="t4Num">04</span><span class="title-main" contenteditable="true" id="t4Main">多维度产品矩阵</span></div><span class="title-sub" contenteditable="true" id="t4Sub">2024年度报告</span></div><div class="divider-zone"><div class="divider-line" id="divLine4"></div></div><div class="overview-area border-visible" id="ovArea4"><div class="overview-content" contenteditable="true" id="ovContent4">三大产品线协同发力，覆盖从基础设施到应用层的完整解决方案。</div></div><div class="multi-col-row" id="multiColRow"></div></div></div>
+        </div>
+        <div class="props-panel" id="propsPanel">
+            <h3>🎛️ 属性设置</h3>
+            <div class="prop-group"><h4>📐 当前模板</h4><div class="prop-row"><label>模板类型</label><select id="templateSelect" style="padding:5px;border:1px solid rgba(180,200,220,0.18);border-radius:5px;background:rgba(15,25,42,0.60);color:#d0d8e2;font-size:12px;"><option value="v2" selected>左配图右多文</option><option value="v1">上文下图</option><option value="v3">上文中下文图</option><option value="v4">多列图文</option></select></div></div>
+            <div class="prop-group"><h4>📏 统一间距</h4><div class="prop-row"><input type="number" id="spacingInput" value="18" min="4" max="40" step="1"><span class="info-tag" id="spacingDisplay">18px</span></div></div>
+            <div class="prop-group"><h4>🔤 标题栏</h4><div class="prop-row"><label>主标题</label><input type="number" id="titleMainSize" value="26" min="16" max="40" step="1">px</div><div class="prop-row"><label>子标题</label><input type="number" id="titleSubSize" value="16" min="10" max="28" step="1">px</div></div>
+            <div class="prop-group"><h4>📝 概述</h4><div class="prop-row"><label>字号</label><input type="number" id="overviewFontSize" value="14" min="8" max="26" step="0.5">px</div><div class="prop-row"><label>行数</label><input type="number" id="overviewMaxLines" value="4" min="1" max="15" step="1"></div><div class="prop-row"><label>行间距</label><input type="number" id="overviewLineHeight" value="1.7" min="1.1" max="3" step="0.05"></div><div class="prop-row"><label>边框</label><label class="toggle-switch"><input type="checkbox" id="toggleOverviewBorder" checked><span class="toggle-slider"></span></label></div><div class="prop-row"><label>边框色</label><input type="color" id="overviewBorderColor" value="#a0bed7"></div></div>
+            <div class="prop-group" id="detailSettingsGroup" style="display:none;"><h4>📋 详述</h4><div class="prop-row"><label>字号</label><input type="number" id="detailFontSize" value="13" min="8" max="26" step="0.5">px</div><div class="prop-row"><label>行数</label><input type="number" id="detailMaxLines" value="5" min="1" max="15" step="1"></div><div class="prop-row"><label>行间距</label><input type="number" id="detailLineHeight" value="1.6" min="1.1" max="3" step="0.05"></div><div class="prop-row"><label>边框</label><label class="toggle-switch"><input type="checkbox" id="toggleDetailBorder" checked><span class="toggle-slider"></span></label></div><div class="prop-row"><label>边框色</label><input type="color" id="detailBorderColor" value="#a0bed7"></div></div>
+            <div class="prop-group" id="cardSettingsGroup"><h4>📋 内容面板</h4><div class="prop-row"><label>组数</label><input type="number" id="cardCountInput" value="4" min="2" max="8" step="1"></div><div class="prop-row"><label>标题字号</label><input type="number" id="cardTitleSize" value="13" min="8" max="22" step="0.5">px</div><div class="prop-row"><label>正文比例</label><input type="range" id="cardBodyRatio" value="0.7" min="0.4" max="1.0" step="0.02"><span id="ratioDisplay">0.70</span></div><div class="prop-row"><label>行数</label><input type="number" id="cardBodyLines" value="3" min="1" max="8" step="1"></div><div class="prop-row"><label>行间距</label><input type="number" id="cardBodyLineHeight" value="1.5" min="1.1" max="2.5" step="0.05"></div><div class="prop-row"><label>标号色</label><input type="color" id="cardNumberColor" value="#5b9bd5"></div><div class="prop-row"><label>标题色</label><input type="color" id="cardTitleColorInput" value="#d0d8e4"></div><div class="prop-row"><label>正文色</label><input type="color" id="cardBodyColorInput" value="#a8b4c2"></div></div>
+            <div class="prop-group" id="multiColSettingsGroup" style="display:none;"><h4>📋 多列设置</h4><div class="prop-row"><label>列数</label><input type="number" id="colCountInput" value="3" min="2" max="5" step="1"></div><div class="prop-row"><label>列间距</label><input type="number" id="colGapInput" value="14" min="6" max="30" step="1">px</div><div class="prop-row"><label>标题字号</label><input type="number" id="colTitleSizeInput" value="13" min="8" max="22" step="0.5">px</div><div class="prop-row"><label>正文比例</label><input type="range" id="colBodyRatio" value="0.7" min="0.4" max="1.0" step="0.02"><span id="colRatioDisplay">0.70</span></div><div class="prop-row"><label>行间距</label><input type="number" id="colBodyLineHeight" value="1.5" min="1.1" max="2.5" step="0.05"></div><div class="prop-row"><label>图/文边框</label><label class="toggle-switch"><input type="checkbox" id="toggleColBorder" checked><span class="toggle-slider"></span></label></div><div class="prop-row"><label>边框色</label><input type="color" id="colBorderColor" value="#a0bed7"></div></div>
+            <div class="prop-group"><h4>🖼️ 图片容器</h4><div class="prop-row"><label>边框</label><label class="toggle-switch"><input type="checkbox" id="toggleImageBorder" checked><span class="toggle-slider"></span></label></div><div class="prop-row"><label>边框色</label><input type="color" id="imageBorderColor" value="#a0bed7"></div><div class="prop-row"><label>圆角</label><input type="number" id="imageBorderRadius" value="6" min="0" max="60" step="1">px</div><div class="prop-row"><span class="info-tag" id="imageSizeDisplay">宽: -- | 高: --</span></div><div id="panelRatioRow" style="display:none;"><div class="prop-row"><label>图:文比</label><input type="range" id="panelRatioSlider" value="0.44" min="0.28" max="0.60" step="0.01"><span id="ratioVal">0.44</span></div></div><label class="file-upload-label">📤 上传图片<input type="file" id="imageUploadInput" accept="image/*"></label><button class="btn btn-outline btn-sm" id="resetImageBtn">🔄 恢复默认</button></div>
+            <div class="prop-group"><h4>➖ 分割线</h4><div class="prop-row"><input type="color" id="dividerColorInput" value="#b4c8e1"></div></div>
+            <button class="btn btn-primary" id="openOutlineBtn">📋 大纲视图编辑</button>
+            <button class="btn btn-download" id="downloadPptxBtn">📥 下载PPTX</button>
+            <button class="btn btn-outline btn-sm" id="clearStorageBtn" style="margin-top:4px;">🗑️ 清除所有数据</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="outlineModal"><div class="modal-dialog"><h3>📋 大纲视图</h3><p class="help-text" style="font-size:11px;color:#8896a8;">使用<strong>[标号][主标题][子标题][概述][图示说明][详述]</strong>标记，模板2使用<strong>[组N标号][组N标题][组N正文]</strong>，模板4使用<strong>[列N标题][列N正文][列N图示说明]</strong>。</p><textarea id="outlineTextarea" spellcheck="false"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="cancelOutlineBtn">取消</button><button class="btn btn-primary" id="applyOutlineBtn">✅ 应用</button></div></div></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script>
+        (function() {
+            const $ = (s) => document.getElementById(s);
+            const toastContainer = $('toastContainer');
+            const floatingColorPicker = $('floatingColorPicker');
+            const floatingColorInput = $('floatingColorInput');
+            let currentTemplate = 'v2';
+            let currentSpacing = 18;
+            let isGeneratingPptx = false;
+            let cardCount = 4;
+            let colCount = 3;
+            let activeColImageIdx = 0;
+            let savedSelection = null;
+            let savedEditableElement = null;
+            let hidePickerTimeout = null;
+            let saveDebounceTimer = null;
+            const DB_NAME = 'PPTEditorDB_V3';
+            const DB_VERSION = 1;
+            const STORE_PAGES = 'pages';
+            const STORE_SETTINGS = 'settings';
+            let db = null;
+            let pagesData = [];
+            let activePageId = null;
+            const defaultImgSrc = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='340'%3E%3Crect fill='%23111d30' width='600' height='340' rx='6'/%3E%3Ctext fill='%235a7a9a' font-family='sans-serif' font-size='16' text-anchor='middle' x='300' y='160'%3E高清大图%3C/text%3E%3C/svg%3E";
+            const defaultImgSrc2 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='340'%3E%3Crect fill='%23111d30' width='400' height='340' rx='6'/%3E%3Ctext fill='%235a7a9a' font-family='sans-serif' font-size='14' text-anchor='middle' x='200' y='160'%3E高清大图%3C/text%3E%3C/svg%3E";
+            const defaultImgSrcSmall = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='200'%3E%3Crect fill='%23111d30' width='280' height='200' rx='4'/%3E%3Ctext fill='%235a7a9a' font-family='sans-serif' font-size='13' text-anchor='middle' x='140' y='100'%3E高清大图%3C/text%3E%3C/svg%3E";
+            const defaultCardData = [
+                { num: '01', title: '智能数据分析', bodyHTML: '基于AI的深度数据挖掘与分析引擎，实时处理海量信息。' },
+                { num: '02', title: '云计算平台', bodyHTML: '弹性可扩展的云原生架构，保障业务连续性。' },
+                { num: '03', title: '安全防护体系', bodyHTML: '多层安全策略，全面保护企业数字资产。' },
+                { num: '04', title: '自动化运维', bodyHTML: '智能监控与自动修复，降低人工干预成本。' }
+            ];
+            const defaultColData = [
+                { title: '智能数据平台', bodyHTML: '基于AI的深度数据挖掘与分析引擎，实时处理海量信息。', caption: '图示说明1', imgSrc: defaultImgSrcSmall },
+                { title: '云原生架构', bodyHTML: '弹性可扩展的云原生基础设施，保障业务连续性。', caption: '图示说明2', imgSrc: defaultImgSrcSmall },
+                { title: '安全防护体系', bodyHTML: '多层安全策略与智能威胁检测，全面保护企业数字资产。', caption: '图示说明3', imgSrc: defaultImgSrcSmall }
+            ];
+            const defaultTemplateData = {
+                v1: { titleNumber: '01', titleMain: '项目概述与核心数据', titleSub: '2024年度报告', overviewHTML: '本年度项目在技术创新与市场拓展方面取得显著进展。', caption: '图1：年度核心数据趋势', imageSrc: defaultImgSrc },
+                v2: { titleNumber: '02', titleMain: '核心能力与解决方案', titleSub: '2024年度报告', overviewHTML: '我们提供全方位的技术解决方案，涵盖四大核心能力模块。', caption: '图2：解决方案架构示意', imageSrc: defaultImgSrc2, cards: defaultCardData.map(c => ({ ...c })) },
+                v3: { titleNumber: '03', titleMain: '深度解析与未来展望', titleSub: '2024年度报告', overviewHTML: '本部分将深入剖析核心技术优势，并结合行业趋势展望未来发展方向。', caption: '图3：技术架构与趋势分析', imageSrc: defaultImgSrc, detailHTML: '基于当前数据模型，我们预测未来三年行业复合增长率将保持在15%以上。' },
+                v4: { titleNumber: '04', titleMain: '多维度产品矩阵', titleSub: '2024年度报告', overviewHTML: '三大产品线协同发力，覆盖从基础设施到应用层的完整解决方案。', cols: defaultColData.map(c => ({ ...c })) }
+            };
+
+            function showToast(msg, type = 'info') {
+                const t = document.createElement('div');
+                t.className = 'toast ' + type;
+                t.textContent = msg;
+                toastContainer.appendChild(t);
+                setTimeout(() => t.remove(), 2200);
+            }
+            function getRootVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+            function setRootVar(n, v) { document.documentElement.style.setProperty(n, v); }
+            function genPageId() { return 'page_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8); }
+
+            // IndexedDB
+            function openDB() {
+                return new Promise((resolve, reject) => {
+                    const req = indexedDB.open(DB_NAME, DB_VERSION);
+                    req.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(STORE_PAGES)) db.createObjectStore(STORE_PAGES);
+                        if (!db.objectStoreNames.contains(STORE_SETTINGS)) db.createObjectStore(STORE_SETTINGS);
+                    };
+                    req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+                    req.onerror = (e) => reject(e.target.error);
+                });
+            }
+            function dbPut(store, key, value) { return new Promise(r => { if (!db) return r(); db.transaction(store, 'readwrite').objectStore(store).put(value, key).onsuccess = r; }); }
+            function dbGet(store, key) { return new Promise(r => { if (!db) return r(null); db.transaction(store, 'readonly').objectStore(store).get(key).onsuccess = (e) => r(e.target.result); }); }
+            function dbGetAll(store) { return new Promise(r => { if (!db) return r([]); db.transaction(store, 'readonly').objectStore(store).getAll().onsuccess = (e) => r(e.target.result || []); }); }
+            function dbDelete(store, key) { return new Promise(r => { if (!db) return r(); db.transaction(store, 'readwrite').objectStore(store).delete(key).onsuccess = r; }); }
+            async function dbClearAllData() { if (!db) return; const tx = db.transaction([STORE_PAGES, STORE_SETTINGS], 'readwrite'); tx.objectStore(STORE_PAGES).clear(); tx.objectStore(STORE_SETTINGS).clear(); return new Promise(r => tx.oncomplete = r); }
+
+            // 全局设置
+            function collectGlobalSettings() {
+                return {
+                    spacing: currentSpacing,
+                    titleMainSize: parseInt($('titleMainSize').value) || 26,
+                    titleSubSize: parseInt($('titleSubSize').value) || 16,
+                    overviewFontSize: parseFloat($('overviewFontSize').value) || 14,
+                    overviewMaxLines: parseInt($('overviewMaxLines').value) || 4,
+                    overviewLineHeight: parseFloat($('overviewLineHeight').value) || 1.7,
+                    toggleOverviewBorder: $('toggleOverviewBorder').checked,
+                    overviewBorderColor: $('overviewBorderColor').value,
+                    detailFontSize: parseFloat($('detailFontSize').value) || 13,
+                    detailMaxLines: parseInt($('detailMaxLines').value) || 5,
+                    detailLineHeight: parseFloat($('detailLineHeight').value) || 1.6,
+                    toggleDetailBorder: $('toggleDetailBorder').checked,
+                    detailBorderColor: $('detailBorderColor').value,
+                    toggleImageBorder: $('toggleImageBorder').checked,
+                    imageBorderColor: $('imageBorderColor').value,
+                    imageBorderRadius: parseInt($('imageBorderRadius').value) || 6,
+                    dividerColor: $('dividerColorInput').value,
+                    cardTitleSize: parseFloat($('cardTitleSize').value) || 13,
+                    cardBodyRatio: parseFloat($('cardBodyRatio').value) || 0.7,
+                    cardBodyLines: parseInt($('cardBodyLines').value) || 3,
+                    cardBodyLineHeight: parseFloat($('cardBodyLineHeight').value) || 1.5,
+                    cardNumberColor: $('cardNumberColor').value,
+                    cardTitleColor: $('cardTitleColorInput').value,
+                    cardBodyColor: $('cardBodyColorInput').value,
+                    panelRatio: parseFloat($('panelRatioSlider').value) || 0.44,
+                    colGap: parseInt($('colGapInput').value) || 14,
+                    colTitleSize: parseFloat($('colTitleSizeInput').value) || 13,
+                    colBodyRatio: parseFloat($('colBodyRatio').value) || 0.7,
+                    colBodyLineHeight: parseFloat($('colBodyLineHeight').value) || 1.5,
+                    toggleColBorder: $('toggleColBorder').checked,
+                    colBorderColor: $('colBorderColor').value,
+                };
+            }
+            function applyGlobalSettings(gs) {
+                if (!gs) return;
+                if (gs.spacing) { currentSpacing = gs.spacing; $('spacingInput').value = gs.spacing; }
+                if (gs.titleMainSize) { $('titleMainSize').value = gs.titleMainSize; setRootVar('--title-main-size', gs.titleMainSize + 'px'); }
+                if (gs.titleSubSize) { $('titleSubSize').value = gs.titleSubSize; setRootVar('--title-sub-size', gs.titleSubSize + 'px'); }
+                if (gs.overviewFontSize) { $('overviewFontSize').value = gs.overviewFontSize; setRootVar('--overview-size', gs.overviewFontSize + 'px'); }
+                if (gs.overviewMaxLines) { $('overviewMaxLines').value = gs.overviewMaxLines; setRootVar('--overview-max-lines', gs.overviewMaxLines); }
+                if (gs.overviewLineHeight) { $('overviewLineHeight').value = gs.overviewLineHeight; setRootVar('--overview-line-height', gs.overviewLineHeight); }
+                if (gs.toggleOverviewBorder !== undefined) $('toggleOverviewBorder').checked = gs.toggleOverviewBorder;
+                if (gs.overviewBorderColor) { $('overviewBorderColor').value = gs.overviewBorderColor; setRootVar('--border-color-overview', gs.overviewBorderColor); }
+                if (gs.detailFontSize) { $('detailFontSize').value = gs.detailFontSize; setRootVar('--detail-size', gs.detailFontSize + 'px'); }
+                if (gs.detailMaxLines) { $('detailMaxLines').value = gs.detailMaxLines; setRootVar('--detail-max-lines', gs.detailMaxLines); }
+                if (gs.detailLineHeight) { $('detailLineHeight').value = gs.detailLineHeight; setRootVar('--detail-line-height', gs.detailLineHeight); }
+                if (gs.toggleDetailBorder !== undefined) $('toggleDetailBorder').checked = gs.toggleDetailBorder;
+                if (gs.detailBorderColor) { $('detailBorderColor').value = gs.detailBorderColor; setRootVar('--border-color-detail', gs.detailBorderColor); }
+                if (gs.toggleImageBorder !== undefined) $('toggleImageBorder').checked = gs.toggleImageBorder;
+                if (gs.imageBorderColor) { $('imageBorderColor').value = gs.imageBorderColor; setRootVar('--border-color-image', gs.imageBorderColor); }
+                if (gs.imageBorderRadius) { $('imageBorderRadius').value = gs.imageBorderRadius; setRootVar('--border-radius-image', gs.imageBorderRadius + 'px'); }
+                if (gs.dividerColor) $('dividerColorInput').value = gs.dividerColor;
+                if (gs.cardTitleSize) { $('cardTitleSize').value = gs.cardTitleSize; setRootVar('--card-title-size', gs.cardTitleSize + 'px'); }
+                if (gs.cardBodyRatio) { $('cardBodyRatio').value = gs.cardBodyRatio; setRootVar('--card-body-ratio', gs.cardBodyRatio); }
+                if (gs.cardBodyLines) { $('cardBodyLines').value = gs.cardBodyLines; setRootVar('--card-body-lines', gs.cardBodyLines); }
+                if (gs.cardBodyLineHeight) { $('cardBodyLineHeight').value = gs.cardBodyLineHeight; setRootVar('--card-body-line-height', gs.cardBodyLineHeight); }
+                if (gs.cardNumberColor) { $('cardNumberColor').value = gs.cardNumberColor; setRootVar('--card-number-color', gs.cardNumberColor); }
+                if (gs.cardTitleColor) { $('cardTitleColorInput').value = gs.cardTitleColor; setRootVar('--card-title-color', gs.cardTitleColor); }
+                if (gs.cardBodyColor) { $('cardBodyColorInput').value = gs.cardBodyColor; setRootVar('--card-body-color', gs.cardBodyColor); }
+                if (gs.panelRatio) { $('panelRatioSlider').value = gs.panelRatio; setRootVar('--panel-ratio', gs.panelRatio); }
+                if (gs.colGap) { $('colGapInput').value = gs.colGap; setRootVar('--col-gap', gs.colGap + 'px'); }
+                if (gs.colTitleSize) { $('colTitleSizeInput').value = gs.colTitleSize; setRootVar('--col-title-size', gs.colTitleSize + 'px'); }
+                if (gs.colBodyRatio) { $('colBodyRatio').value = gs.colBodyRatio; setRootVar('--col-body-ratio', gs.colBodyRatio); }
+                if (gs.colBodyLineHeight) { $('colBodyLineHeight').value = gs.colBodyLineHeight; setRootVar('--col-body-line-height', gs.colBodyLineHeight); }
+                if (gs.toggleColBorder !== undefined) $('toggleColBorder').checked = gs.toggleColBorder;
+                if (gs.colBorderColor) $('colBorderColor').value = gs.colBorderColor;
+                $('spacingDisplay').textContent = currentSpacing + 'px';
+                $('ratioDisplay').textContent = (parseFloat($('cardBodyRatio').value) || 0.7).toFixed(2);
+                $('colRatioDisplay').textContent = (parseFloat($('colBodyRatio').value) || 0.7).toFixed(2);
+                $('ratioVal').textContent = (parseFloat($('panelRatioSlider').value) || 0.44).toFixed(2);
+            }
+
+            // 页面数据收集与应用
+            function collectCurrentPageData() {
+                const tpl = currentTemplate;
+                const data = { template: tpl };
+                const numMap = { v1: 't1Num', v2: 't2Num', v3: 't3Num', v4: 't4Num' };
+                const mainMap = { v1: 't1Main', v2: 't2Main', v3: 't3Main', v4: 't4Main' };
+                const subMap = { v1: 't1Sub', v2: 't2Sub', v3: 't3Sub', v4: 't4Sub' };
+                const ovMap = { v1: 'ovContent1', v2: 'ovContent2', v3: 'ovContent3', v4: 'ovContent4' };
+                data.titleNumber = $(numMap[tpl])?.textContent?.trim() || '';
+                data.titleMain = $(mainMap[tpl])?.textContent?.trim() || '';
+                data.titleSub = $(subMap[tpl])?.textContent?.trim() || '';
+                data.overviewHTML = $(ovMap[tpl])?.innerHTML || '';
+                if (tpl !== 'v4') {
+                    const capMap = { v1: 'cap1', v2: 'cap2', v3: 'cap3' };
+                    const imgMap = { v1: 'mainImage1', v2: 'mainImage2', v3: 'mainImage3' };
+                    data.caption = $(capMap[tpl])?.textContent?.trim() || '';
+                    data.imageSrc = $(imgMap[tpl])?.src || '';
+                }
+                if (tpl === 'v2') {
+                    data.cards = [];
+                    const panel = $('contentPanel');
+                    if (panel) panel.querySelectorAll('.content-card').forEach(card => data.cards.push({
+                        num: card.querySelector('.card-number')?.textContent?.trim() || '',
+                        title: card.querySelector('.card-title')?.textContent?.trim() || '',
+                        bodyHTML: card.querySelector('.card-body')?.innerHTML || ''
+                    }));
+                }
+                if (tpl === 'v3') data.detailHTML = $('detailContentV3')?.innerHTML || '';
+                if (tpl === 'v4') {
+                    data.cols = [];
+                    const row = $('multiColRow');
+                    if (row) row.querySelectorAll('.multi-col-group').forEach(g => data.cols.push({
+                        title: g.querySelector('.col-body-title')?.textContent?.trim() || '',
+                        bodyHTML: g.querySelector('.col-body-text')?.innerHTML || '',
+                        caption: g.querySelector('.image-caption')?.textContent?.trim() || '',
+                        imgSrc: g.querySelector('.image-container img')?.src || defaultImgSrcSmall
+                    }));
+                }
+                return data;
+            }
+
+            function ensureDefaultData(tpl, data) {
+                // 确保数据完整性，缺失则用默认值填充
+                const defaults = defaultTemplateData[tpl];
+                if (!data) data = {};
+                if (!data.titleNumber) data.titleNumber = defaults.titleNumber;
+                if (!data.titleMain) data.titleMain = defaults.titleMain;
+                if (!data.titleSub) data.titleSub = defaults.titleSub;
+                if (!data.overviewHTML) data.overviewHTML = defaults.overviewHTML;
+                if (tpl !== 'v4') {
+                    if (!data.caption) data.caption = defaults.caption;
+                    if (!data.imageSrc) data.imageSrc = defaults.imageSrc;
+                }
+                if (tpl === 'v2') {
+                    if (!data.cards || data.cards.length === 0) data.cards = defaults.cards.map(c => ({ ...c }));
+                }
+                if (tpl === 'v3') {
+                    if (!data.detailHTML) data.detailHTML = defaults.detailHTML;
+                }
+                if (tpl === 'v4') {
+                    if (!data.cols || data.cols.length === 0) data.cols = defaults.cols.map(c => ({ ...c }));
+                }
+                return data;
+            }
+
+            function applyPageData(data) {
+                if (!data) return;
+                const tpl = data.template || currentTemplate;
+                const numMap = { v1: 't1Num', v2: 't2Num', v3: 't3Num', v4: 't4Num' };
+                const mainMap = { v1: 't1Main', v2: 't2Main', v3: 't3Main', v4: 't4Main' };
+                const subMap = { v1: 't1Sub', v2: 't2Sub', v3: 't3Sub', v4: 't4Sub' };
+                const ovMap = { v1: 'ovContent1', v2: 'ovContent2', v3: 'ovContent3', v4: 'ovContent4' };
+                if (data.titleNumber) $(numMap[tpl]).textContent = data.titleNumber;
+                if (data.titleMain) $(mainMap[tpl]).textContent = data.titleMain;
+                if (data.titleSub) $(subMap[tpl]).textContent = data.titleSub;
+                if (data.overviewHTML) $(ovMap[tpl]).innerHTML = data.overviewHTML;
+                if (tpl !== 'v4') {
+                    const capMap = { v1: 'cap1', v2: 'cap2', v3: 'cap3' };
+                    const imgMap = { v1: 'mainImage1', v2: 'mainImage2', v3: 'mainImage3' };
+                    if (data.caption) $(capMap[tpl]).textContent = data.caption;
+                    if (data.imageSrc) {
+                        const img = $(imgMap[tpl]);
+                        if (img) { img.src = data.imageSrc; img.style.display = data.imageSrc.includes('data:image/svg+xml') ? 'none' : 'block'; }
+                        const ph = $(imgMap[tpl])?.parentElement?.querySelector('.image-placeholder');
+                        if (ph) ph.style.display = data.imageSrc.includes('data:image/svg+xml') ? 'block' : 'none';
+                    }
+                }
+                if (tpl === 'v2' && data.cards && data.cards.length) {
+                    cardCount = data.cards.length;
+                    $('cardCountInput').value = cardCount;
+                    const panel = $('contentPanel');
+                    panel.innerHTML = '';
+                    data.cards.forEach(d => {
+                        const card = document.createElement('div');
+                        card.className = 'content-card';
+                        card.innerHTML = `<div class="card-header"><span class="card-number" contenteditable="true">${d.num||''}</span><span class="card-title" contenteditable="true">${d.title||''}</span></div><div class="card-body" contenteditable="true">${d.bodyHTML||''}</div>`;
+                        panel.appendChild(card);
+                    });
+                    updateCardFonts();
+                }
+                if (tpl === 'v3' && data.detailHTML) $('detailContentV3').innerHTML = data.detailHTML;
+                if (tpl === 'v4' && data.cols && data.cols.length) {
+                    colCount = data.cols.length;
+                    $('colCountInput').value = colCount;
+                    const row = $('multiColRow');
+                    row.innerHTML = '';
+                    data.cols.forEach((d, i) => {
+                        const group = document.createElement('div');
+                        group.className = 'multi-col-group border-visible';
+                        group.setAttribute('data-col-idx', i);
+                        group.innerHTML = `<div class="multi-col-figure"><div class="image-container border-visible" data-col-img="${i}"><img src="${d.imgSrc||defaultImgSrcSmall}" alt="占位图"><span class="image-placeholder" style="display:none;">点击上传</span></div><div class="image-caption" contenteditable="true">${d.caption||''}</div></div><div class="multi-col-body"><div class="col-body-title" contenteditable="true">${d.title||''}</div><div class="col-body-text" contenteditable="true">${d.bodyHTML||''}</div></div>`;
+                        row.appendChild(group);
+                    });
+                    row.querySelectorAll('.image-container').forEach(ic => ic.addEventListener('click', function(e) {
+                        if (e.target === this || e.target === this.querySelector('img') || e.target === this.querySelector('.image-placeholder')) {
+                            activeColImageIdx = parseInt(this.getAttribute('data-col-img') || 0);
+                            $('imageUploadInput').click();
+                        }
+                    }));
+                    updateColFonts();
+                    setTimeout(updateAllFigureHeights, 150);
+                }
+            }
+
+            // 页面管理
+            function getActivePage() { return pagesData.find(p => p.id === activePageId); }
+            async function saveCurrentPageData() {
+                if (!activePageId) return;
+                const page = getActivePage();
+                if (!page) return;
+                page.data = collectCurrentPageData();
+                page.template = currentTemplate;
+                page.data.template = currentTemplate;
+                await dbPut(STORE_PAGES, activePageId, page);
+            }
+            async function saveAllData() {
+                await saveCurrentPageData();
+                await dbPut(STORE_SETTINGS, 'global', collectGlobalSettings());
+            }
+            function debounceSave() { clearTimeout(saveDebounceTimer); saveDebounceTimer = setTimeout(saveAllData, 500); }
+
+            function getTemplateLabel(tpl) { return { v1: '上文下图', v2: '左配图右多文', v3: '上文中下文图', v4: '多列图文' } [tpl] || tpl; }
+            function getTemplateIcon(tpl) { return { v1: '📊', v2: '📋', v3: '📑', v4: '🗂️' } [tpl] || '📄'; }
+
+            function renderPageTabs() {
+                const bar = $('pageTabsBar');
+                bar.querySelectorAll('.page-tab').forEach(t => t.remove());
+                pagesData.forEach(page => {
+                    const tab = document.createElement('div');
+                    tab.className = 'page-tab' + (page.id === activePageId ? ' active' : '');
+                    tab.setAttribute('data-page-id', page.id);
+                    tab.innerHTML = `<span class="tab-icon">${getTemplateIcon(page.template)}</span><span class="tab-name">${getTemplateLabel(page.template)}</span><span class="tab-delete" data-delete="${page.id}">✕</span>`;
+                    tab.addEventListener('click', function(e) {
+                        if (e.target.classList.contains('tab-delete')) { e.stopPropagation();
+                            deletePage(page.id); return; }
+                        switchToPage(page.id);
+                    });
+                    bar.insertBefore(tab, $('btnAddPage'));
+                });
+            }
+
+            async function switchToPage(pageId) {
+                if (pageId === activePageId) return;
+                await saveCurrentPageData();
+                const page = pagesData.find(p => p.id === pageId);
+                if (!page) return;
+                activePageId = pageId;
+                currentTemplate = page.template || 'v2';
+                setActiveSlideOuter(currentTemplate);
+                $('templateSelect').value = currentTemplate;
+                const ensuredData = ensureDefaultData(currentTemplate, page.data);
+                applyPageData(ensuredData);
+                applyAllSpacings();
+                applyGlobalSettingsToDOM();
+                updateOverviewMaxHeight();
+                if (currentTemplate === 'v3') updateDetailMaxHeight();
+                applyBorderVisibility();
+                updatePanelVisibility();
+                if (currentTemplate === 'v4') { updateColFonts();
+                    setTimeout(updateAllFigureHeights, 200); }
+                if (currentTemplate === 'v2') updateCardFonts();
+                updateImageInfo();
+                renderPageTabs();
+                updateSlideLabel();
+                $('dividerColorInput').dispatchEvent(new Event('input'));
+            }
+
+            async function createNewPage(templateType) {
+                await saveCurrentPageData();
+                const newId = genPageId();
+                const defaultData = JSON.parse(JSON.stringify(defaultTemplateData[templateType]));
+                const newPage = { id: newId, template: templateType, data: defaultData };
+                pagesData.push(newPage);
+                await dbPut(STORE_PAGES, newId, newPage);
+                activePageId = newId;
+                currentTemplate = templateType;
+                setActiveSlideOuter(templateType);
+                $('templateSelect').value = templateType;
+                applyPageData(defaultData);
+                applyAllSpacings();
+                applyGlobalSettingsToDOM();
+                updateOverviewMaxHeight();
+                if (templateType === 'v3') updateDetailMaxHeight();
+                applyBorderVisibility();
+                updatePanelVisibility();
+                if (templateType === 'v4') { updateColFonts();
+                    setTimeout(updateAllFigureHeights, 200); }
+                if (templateType === 'v2') updateCardFonts();
+                updateImageInfo();
+                renderPageTabs();
+                updateSlideLabel();
+                $('dividerColorInput').dispatchEvent(new Event('input'));
+                $('addPageMenu').classList.remove('active');
+                showToast('已创建新页面：' + getTemplateLabel(templateType), 'success');
+                debounceSave();
+            }
+
+            async function deletePage(pageId) {
+                if (pagesData.length <= 1) { showToast('至少保留一个页面', 'error'); return; }
+                const idx = pagesData.findIndex(p => p.id === pageId);
+                if (idx === -1) return;
+                await dbDelete(STORE_PAGES, pageId);
+                pagesData.splice(idx, 1);
+                if (pageId === activePageId) {
+                    const newActive = pagesData[Math.min(idx, pagesData.length - 1)];
+                    activePageId = newActive.id;
+                    currentTemplate = newActive.template;
+                    setActiveSlideOuter(currentTemplate);
+                    $('templateSelect').value = currentTemplate;
+                    applyPageData(ensureDefaultData(currentTemplate, newActive.data));
+                    applyAllSpacings();
+                    applyGlobalSettingsToDOM();
+                    updateOverviewMaxHeight();
+                    if (currentTemplate === 'v3') updateDetailMaxHeight();
+                    applyBorderVisibility();
+                    updatePanelVisibility();
+                    if (currentTemplate === 'v4') { updateColFonts();
+                        setTimeout(updateAllFigureHeights, 200); }
+                    if (currentTemplate === 'v2') updateCardFonts();
+                    updateImageInfo();
+                }
+                renderPageTabs();
+                updateSlideLabel();
+                debounceSave();
+                showToast('页面已删除', 'info');
+            }
+
+            function setActiveSlideOuter(tpl) {
+                ['slideOuterV1', 'slideOuterV2', 'slideOuterV3', 'slideOuterV4'].forEach(id => { if ($(id)) $(id).classList.remove('active'); });
+                const outerMap = { v1: 'slideOuterV1', v2: 'slideOuterV2', v3: 'slideOuterV3', v4: 'slideOuterV4' };
+                if ($(outerMap[tpl])) $(outerMap[tpl]).classList.add('active');
+            }
+            function updateSlideLabel() {
+                const idx = pagesData.findIndex(p => p.id === activePageId);
+                $('slideLabel').textContent = `📄 第${idx+1}页 · ${getTemplateLabel(currentTemplate)} · 16:9`;
+            }
+            function updatePanelVisibility() {
+                $('cardSettingsGroup').style.display = currentTemplate === 'v2' ? '' : 'none';
+                $('detailSettingsGroup').style.display = currentTemplate === 'v3' ? '' : 'none';
+                $('multiColSettingsGroup').style.display = currentTemplate === 'v4' ? '' : 'none';
+                $('panelRatioRow').style.display = currentTemplate === 'v2' ? '' : 'none';
+            }
+            function applyGlobalSettingsToDOM() {
+                applyGlobalSettings(collectGlobalSettings());
+                applyAllSpacings();
+                applyBorderVisibility();
+            }
+
+            function getActiveSlide() { return $( { v1: 'slideV1', v2: 'slideV2', v3: 'slideV3', v4: 'slideV4' } [currentTemplate]); }
+            function getActiveImgContainer() {
+                if (currentTemplate === 'v4') return $('multiColRow')?.children[0]?.querySelector('.image-container') || null;
+                return $( { v1: 'imgContainer1', v2: 'imgContainer2', v3: 'imgContainer3' } [currentTemplate]);
+            }
+            function updateAllFigureHeights() {
+                if (currentTemplate !== 'v4') return;
+                const row = $('multiColRow');
+                if (!row) return;
+                const groups = row.querySelectorAll('.multi-col-group');
+                if (!groups.length) return;
+                let minFigH = Infinity;
+                const figHeights = [];
+                groups.forEach(g => { const fig = g.querySelector('.multi-col-figure'); if (fig) { const h = fig.getBoundingClientRect().height;
+                        figHeights.push({ el: fig, h }); if (h < minFigH) minFigH = h; } });
+                if (minFigH > 0 && minFigH < Infinity) figHeights.forEach(fh => { fh.el.style.flexGrow = '0';
+                    fh.el.style.height = minFigH + 'px'; });
+                let maxBodyH = 0;
+                const bodyHeights = [];
+                groups.forEach(g => { const body = g.querySelector('.multi-col-body'); if (body) { const h = body.getBoundingClientRect().height;
+                        bodyHeights.push({ el: body, h }); if (h > maxBodyH) maxBodyH = h; } });
+                if (maxBodyH > 0) bodyHeights.forEach(bh => bh.el.style.height = maxBodyH + 'px');
+                updateImageInfo();
+            }
+            function applyAllSpacings() {
+                setRootVar('--spacing', currentSpacing + 'px');
+                const slide = getActiveSlide();
+                if (slide) slide.style.paddingBottom = currentSpacing + 'px';
+                const dz = slide?.querySelector('.divider-zone');
+                if (dz) dz.style.paddingTop = dz.style.paddingBottom = currentSpacing + 'px';
+                if (currentTemplate === 'v1' || currentTemplate === 'v3') {
+                    const fg = slide?.querySelector('.figure-group');
+                    if (fg) fg.style.paddingTop = currentSpacing + 'px';
+                }
+                if (currentTemplate === 'v2') {
+                    const dr = $('detailRow');
+                    if (dr) { dr.style.paddingTop = currentSpacing + 'px';
+                        dr.style.gap = currentSpacing + 'px'; }
+                    const ratio = parseFloat(getRootVar('--panel-ratio')) || 0.44;
+                    const dl = $('detailLeft');
+                    const drr = $('detailRight');
+                    if (dl && drr) { dl.style.flex = '0 0 ' + (ratio * 100) + '%';
+                        drr.style.flex = '1 1 ' + ((1 - ratio) * 100) + '%'; }
+                }
+                if (currentTemplate === 'v3') { const da = $('detailAreaV3'); if (da) da.style.marginTop = currentSpacing + 'px'; }
+                if (currentTemplate === 'v4') { const mcr = $('multiColRow'); if (mcr) mcr.style.paddingTop = currentSpacing + 'px'; }
+                $('spacingDisplay').textContent = currentSpacing + 'px';
+            }
+            function updateOverviewMaxHeight() {
+                const fontSize = parseFloat(getRootVar('--overview-size').replace('px', '')) || 14;
+                const lineHeight = parseFloat(getRootVar('--overview-line-height')) || 1.7;
+                const maxLines = parseInt(getRootVar('--overview-max-lines')) || 4;
+                const oa = getActiveSlide()?.querySelector('.overview-area');
+                if (oa) oa.style.maxHeight = (maxLines * fontSize * lineHeight + 14) + 'px';
+                const oc = oa?.querySelector('.overview-content');
+                if (oc) { oc.style.webkitLineClamp = maxLines;
+                    oc.style.lineClamp = maxLines; }
+                if (currentTemplate === 'v4') setTimeout(updateAllFigureHeights, 80);
+            }
+            function updateDetailMaxHeight() {
+                if (currentTemplate !== 'v3') return;
+                const fontSize = parseFloat(getRootVar('--detail-size').replace('px', '')) || 13;
+                const lineHeight = parseFloat(getRootVar('--detail-line-height')) || 1.6;
+                const maxLines = parseInt(getRootVar('--detail-max-lines')) || 5;
+                const da = $('detailAreaV3');
+                if (da) da.style.maxHeight = (maxLines * fontSize * lineHeight + 14) + 'px';
+                const dc = $('detailContentV3');
+                if (dc) { dc.style.webkitLineClamp = maxLines;
+                    dc.style.lineClamp = maxLines; }
+            }
+            function updateImageInfo() {
+                const ic = getActiveImgContainer();
+                if (ic) $('imageSizeDisplay').textContent = `宽: ${Math.round(ic.getBoundingClientRect().width)} | 高: ${Math.round(ic.getBoundingClientRect().height)}`;
+            }
+            function applyBorderVisibility() {
+                const oa = getActiveSlide()?.querySelector('.overview-area');
+                if (oa) oa.classList.toggle('border-visible', $('toggleOverviewBorder').checked);
+                if (currentTemplate === 'v4') {
+                    $('multiColRow')?.querySelectorAll('.multi-col-group').forEach(g => g.classList.toggle('border-visible', $('toggleColBorder').checked));
+                    $('multiColRow')?.querySelectorAll('.image-container').forEach(ic => ic.classList.toggle('border-visible', $('toggleImageBorder').checked));
+                } else getActiveImgContainer()?.classList.toggle('border-visible', $('toggleImageBorder').checked);
+                if (currentTemplate === 'v3') $('detailAreaV3')?.classList.toggle('border-visible', $('toggleDetailBorder').checked);
+            }
+            function updateColFonts() {
+                const ts = parseFloat(getRootVar('--col-title-size').replace('px', '')) || 13;
+                const ratio = parseFloat(getRootVar('--col-body-ratio')) || 0.7;
+                setRootVar('--col-body-size', Math.round(ts * ratio * 10) / 10 + 'px');
+                $('colRatioDisplay').textContent = ratio.toFixed(2);
+            }
+            function updateCardFonts() {
+                const ts = parseFloat(getRootVar('--card-title-size').replace('px', '')) || 13;
+                const ratio = parseFloat(getRootVar('--card-body-ratio')) || 0.7;
+                setRootVar('--card-body-size', Math.round(ts * ratio * 10) / 10 + 'px');
+                $('ratioDisplay').textContent = ratio.toFixed(2);
+            }
+            function applyColorToSelection(color, el) {
+                const sel = window.getSelection();
+                if (sel.rangeCount === 0 || !el.contains(sel.getRangeAt(0).commonAncestorContainer) || sel.isCollapsed) return;
+                try { document.execCommand('foreColor', false, color); } catch (e) {}
+                debounceSave();
+            }
+
+            // 浮动颜色选择器
+            function saveSelectionFn() {
+                const sel = window.getSelection();
+                if (sel.rangeCount === 0 || sel.isCollapsed) { savedSelection = null;
+                    savedEditableElement = null; return; }
+                savedSelection = sel.getRangeAt(0).cloneRange();
+                let node = sel.anchorNode;
+                while (node) { if (node.nodeType === 1 && node.isContentEditable) { savedEditableElement = node; break; }
+                    node = node.parentNode; }
+            }
+            function showFloatingPicker(rect) {
+                clearTimeout(hidePickerTimeout);
+                floatingColorPicker.classList.add('active');
+                const pr = floatingColorPicker.getBoundingClientRect();
+                let top = rect.bottom + 8,
+                    left = rect.left + rect.width / 2 - pr.width / 2;
+                if (top + pr.height > window.innerHeight - 20) top = rect.top - pr.height - 8;
+                if (left < 10) left = 10;
+                if (left + pr.width > window.innerWidth - 10) left = window.innerWidth - pr.width - 10;
+                floatingColorPicker.style.top = top + 'px';
+                floatingColorPicker.style.left = left + 'px';
+            }
+            function hideFloatingPicker() { floatingColorPicker.classList.remove('active');
+                savedSelection = null;
+                savedEditableElement = null; }
+            function scheduleHidePicker() { hidePickerTimeout = setTimeout(() => { if (!window.getSelection()?.toString()?.trim()) hideFloatingPicker(); }, 400); }
+            function applyFloatingColor(color) {
+                if (!savedEditableElement) {
+                    const sel = window.getSelection();
+                    if (sel.rangeCount === 0 || sel.isCollapsed) return;
+                    let node = sel.anchorNode;
+                    while (node && !(node.nodeType === 1 && node.isContentEditable)) node = node.parentNode;
+                    if (!node) return;
+                    savedEditableElement = node;
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedSelection);
+                try { document.execCommand('foreColor', false, color); } catch (e) {}
+                saveSelectionFn();
+                debounceSave();
+            }
+            floatingColorInput.addEventListener('input', () => applyFloatingColor(floatingColorInput.value));
+            $('resetFloatingColor').addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (savedEditableElement) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedSelection);
+                    document.execCommand('removeFormat', false, null);
+                    saveSelectionFn();
+                    debounceSave();
+                }
+            });
+            $('presetColors').addEventListener('click', function(e) {
+                const swatch = e.target.closest('.preset-swatch');
+                if (!swatch) return;
+                floatingColorInput.value = swatch.dataset.color;
+                applyFloatingColor(swatch.dataset.color);
+                e.stopPropagation();
+            });
+            floatingColorPicker.addEventListener('click', e => e.stopPropagation());
+            document.addEventListener('mousedown', function(e) {
+                if (floatingColorPicker.classList.contains('active') && !floatingColorPicker.contains(e.target)) scheduleHidePicker();
+            });
+            document.addEventListener('mouseup', function(e) {
+                if (floatingColorPicker.contains(e.target) || $('propsPanel').contains(e.target) || $('outlineModal').contains(e.target) || $('pageTabsBar').contains(e.target)) return;
+                setTimeout(() => {
+                    const sel = window.getSelection();
+                    const st = sel.toString().trim();
+                    if (!st) return;
+                    let node = sel.anchorNode;
+                    while (node && !(node.nodeType === 1 && node.isContentEditable)) node = node.parentNode;
+                    if (!node) return;
+                    saveSelectionFn();
+                    showFloatingPicker(sel.getRangeAt(0).getBoundingClientRect());
+                }, 80);
+            });
+
+            // 事件绑定
+            $('btnAddPage').addEventListener('click', e => { e.stopPropagation();
+                $('addPageMenu').classList.toggle('active'); });
+            document.addEventListener('click', e => { if (!$('addPageMenu').contains(e.target) && e.target !== $('btnAddPage')) $('addPageMenu').classList.remove('active'); });
+            $('addPageMenu').addEventListener('click', e => { const item = e.target.closest('.add-page-menu-item'); if (item) createNewPage(item.dataset.tpl); });
+
+            $('templateSelect').addEventListener('change', async function() {
+                const newTpl = this.value;
+                if (newTpl === currentTemplate) return;
+                await saveCurrentPageData();
+                currentTemplate = newTpl;
+                setActiveSlideOuter(newTpl);
+                const page = getActivePage();
+                if (page) {
+                    page.template = newTpl;
+                    const existingData = collectCurrentPageData();
+                    page.data = ensureDefaultData(newTpl, existingData);
+                }
+                applyPageData(getActivePage()?.data || defaultTemplateData[newTpl]);
+                applyAllSpacings();
+                applyGlobalSettingsToDOM();
+                updateOverviewMaxHeight();
+                if (newTpl === 'v3') updateDetailMaxHeight();
+                applyBorderVisibility();
+                updatePanelVisibility();
+                if (newTpl === 'v4') { updateColFonts();
+                    setTimeout(updateAllFigureHeights, 200); }
+                if (newTpl === 'v2') updateCardFonts();
+                updateImageInfo();
+                updateSlideLabel();
+                renderPageTabs();
+                $('dividerColorInput').dispatchEvent(new Event('input'));
+                debounceSave();
+            });
+
+            $('spacingInput').addEventListener('input', function() { currentSpacing = Math.max(4, Math.min(40, parseInt(this.value) || 18));
+                this.value = currentSpacing;
+                applyAllSpacings();
+                debounceSave(); });
+            $('titleMainSize').addEventListener('input', function() { const v = Math.max(16, Math.min(40, parseInt(this.value) || 26));
+                this.value = v;
+                setRootVar('--title-main-size', v + 'px');
+                $('overviewFontSize').max = v;
+                $('detailFontSize').max = v;
+                updateOverviewMaxHeight();
+                updateDetailMaxHeight();
+                debounceSave(); });
+            $('titleSubSize').addEventListener('input', function() { setRootVar('--title-sub-size', Math.max(10, Math.min(28, parseInt(this.value) || 16)) + 'px');
+                debounceSave(); });
+            $('overviewFontSize').addEventListener('input', function() { const maxV = parseInt($('titleMainSize').value) || 26;
+                let v = Math.max(8, Math.min(maxV, parseFloat(this.value) || 14));
+                this.value = v;
+                setRootVar('--overview-size', v + 'px');
+                updateOverviewMaxHeight();
+                debounceSave(); });
+            $('overviewMaxLines').addEventListener('input', function() { setRootVar('--overview-max-lines', Math.max(1, Math.min(15, parseInt(this.value) || 4)));
+                updateOverviewMaxHeight();
+                debounceSave(); });
+            $('overviewLineHeight').addEventListener('input', function() { let v = Math.max(1.1, Math.min(3, parseFloat(this.value) || 1.7));
+                this.value = Math.round(v * 100) / 100;
+                setRootVar('--overview-line-height', v);
+                updateOverviewMaxHeight();
+                debounceSave(); });
+            $('toggleOverviewBorder').addEventListener('change', function() { applyBorderVisibility();
+                debounceSave(); });
+            $('overviewBorderColor').addEventListener('input', function() { setRootVar('--border-color-overview', this.value);
+                debounceSave(); });
+            $('detailFontSize').addEventListener('input', function() { const maxV = parseInt($('titleMainSize').value) || 26;
+                let v = Math.max(8, Math.min(maxV, parseFloat(this.value) || 13));
+                this.value = v;
+                setRootVar('--detail-size', v + 'px');
+                updateDetailMaxHeight();
+                debounceSave(); });
+            $('detailMaxLines').addEventListener('input', function() { setRootVar('--detail-max-lines', Math.max(1, Math.min(15, parseInt(this.value) || 5)));
+                updateDetailMaxHeight();
+                debounceSave(); });
+            $('detailLineHeight').addEventListener('input', function() { let v = Math.max(1.1, Math.min(3, parseFloat(this.value) || 1.6));
+                this.value = Math.round(v * 100) / 100;
+                setRootVar('--detail-line-height', v);
+                updateDetailMaxHeight();
+                debounceSave(); });
+            $('toggleDetailBorder').addEventListener('change', function() { applyBorderVisibility();
+                debounceSave(); });
+            $('detailBorderColor').addEventListener('input', function() { setRootVar('--border-color-detail', this.value);
+                debounceSave(); });
+            $('toggleImageBorder').addEventListener('change', function() { applyBorderVisibility();
+                debounceSave(); });
+            $('imageBorderColor').addEventListener('input', function() { setRootVar('--border-color-image', this.value);
+                debounceSave(); });
+            $('imageBorderRadius').addEventListener('input', function() { const v = Math.max(0, Math.min(60, parseInt(this.value) || 6));
+                this.value = v;
+                setRootVar('--border-radius-image', v + 'px');
+                updateImageInfo();
+                debounceSave(); });
+            $('dividerColorInput').addEventListener('input', function() { const dl = getActiveSlide()?.querySelector('.divider-line'); if (dl) dl.style.background = `linear-gradient(90deg,transparent 0%,${this.value}55 5%,${this.value}88 30%,${this.value}aa 50%,${this.value}88 70%,${this.value}55 95%,transparent 100%)`;
+                debounceSave(); });
+            $('imageUploadInput').addEventListener('change', function(e) { const file = e.target.files[0]; if (!file?.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = function(ev) { if (currentTemplate === 'v4') { const groups = $('multiColRow')?.querySelectorAll('.multi-col-group');
+                        const tg = groups?.[activeColImageIdx]; if (tg) { const img = tg.querySelector('.image-container img'); if (img) { img.src = ev.target.result;
+                                img.style.display = 'block'; }
+                            tg.querySelector('.image-placeholder').style.display = 'none'; } } else { const img = getActiveSlide()?.querySelector('.image-container img'); if (img) { img.src = ev.target.result;
+                            img.style.display = 'block'; } const ph = getActiveImgContainer()?.querySelector('.image-placeholder'); if (ph) ph.style.display = 'none'; }
+                    updateImageInfo();
+                    debounceSave(); };
+                reader.readAsDataURL(file);
+                this.value = ''; });
+            $('resetImageBtn').addEventListener('click', function() { if (currentTemplate === 'v4') { $('multiColRow')?.querySelectorAll('.image-container').forEach(ic => { const img = ic.querySelector('img'); if (img) { img.src = defaultImgSrcSmall;
+                            img.style.display = 'none'; }
+                        ic.querySelector('.image-placeholder').style.display = 'block'; }); } else { const img = getActiveSlide()?.querySelector('.image-container img'); if (img) { img.src = currentTemplate === 'v2' ? defaultImgSrc2 : defaultImgSrc;
+                        img.style.display = 'none'; } const ph = getActiveImgContainer()?.querySelector('.image-placeholder'); if (ph) ph.style.display = 'block'; }
+                updateImageInfo();
+                debounceSave(); });
+            document.addEventListener('click', function(e) { if (currentTemplate === 'v4') return;
+                const ic = getActiveImgContainer(); if (ic && (e.target === ic || e.target === ic.querySelector('img') || e.target === ic.querySelector('.image-placeholder'))) $('imageUploadInput').click(); });
+            $('colCountInput').addEventListener('input', function() { colCount = Math.max(2, Math.min(5, parseInt(this.value) || 3));
+                this.value = colCount; const data = collectCurrentPageData(); if (data.cols) { while (data.cols.length < colCount) data.cols.push({ title: '产品' + (data.cols.length + 1), bodyHTML: '正文内容...', caption: '图示说明' + (data.cols.length + 1), imgSrc: defaultImgSrcSmall }); while (data.cols.length > colCount) data.cols.pop(); }
+                applyPageData(data);
+                updateColFonts();
+                setTimeout(updateAllFigureHeights, 150);
+                debounceSave(); });
+            $('colGapInput').addEventListener('input', function() { const v = Math.max(6, Math.min(30, parseInt(this.value) || 14));
+                this.value = v;
+                setRootVar('--col-gap', v + 'px');
+                debounceSave(); });
+            $('colTitleSizeInput').addEventListener('input', function() { const v = Math.max(8, Math.min(22, parseFloat(this.value) || 13));
+                this.value = v;
+                setRootVar('--col-title-size', v + 'px');
+                updateColFonts();
+                debounceSave(); });
+            $('colBodyRatio').addEventListener('input', function() { const v = Math.max(0.4, Math.min(1.0, parseFloat(this.value) || 0.7));
+                this.value = v;
+                setRootVar('--col-body-ratio', v);
+                updateColFonts();
+                debounceSave(); });
+            $('colBodyLineHeight').addEventListener('input', function() { const v = Math.max(1.1, Math.min(2.5, parseFloat(this.value) || 1.5));
+                this.value = Math.round(v * 100) / 100;
+                setRootVar('--col-body-line-height', v);
+                debounceSave(); });
+            $('toggleColBorder').addEventListener('change', function() { applyBorderVisibility();
+                debounceSave(); });
+            $('colBorderColor').addEventListener('input', function() { debounceSave(); });
+            $('cardCountInput').addEventListener('input', function() { cardCount = Math.max(2, Math.min(8, parseInt(this.value) || 4));
+                this.value = cardCount; const data = collectCurrentPageData(); if (data.cards) { while (data.cards.length < cardCount) data.cards.push({ num: String(data.cards.length + 1).padStart(2, '0'), title: '标题' + (data.cards.length + 1), bodyHTML: '正文内容...' }); while (data.cards.length > cardCount) data.cards.pop(); }
+                applyPageData(data);
+                updateCardFonts();
+                debounceSave(); });
+            $('cardTitleSize').addEventListener('input', function() { setRootVar('--card-title-size', Math.max(8, Math.min(22, parseFloat(this.value) || 13)) + 'px');
+                updateCardFonts();
+                debounceSave(); });
+            $('cardBodyRatio').addEventListener('input', function() { setRootVar('--card-body-ratio', Math.max(0.4, Math.min(1.0, parseFloat(this.value) || 0.7)));
+                updateCardFonts();
+                debounceSave(); });
+            $('cardBodyLines').addEventListener('input', function() { setRootVar('--card-body-lines', Math.max(1, Math.min(8, parseInt(this.value) || 3)));
+                updateCardFonts();
+                debounceSave(); });
+            $('cardBodyLineHeight').addEventListener('input', function() { setRootVar('--card-body-line-height', Math.max(1.1, Math.min(2.5, parseFloat(this.value) || 1.5)));
+                updateCardFonts();
+                debounceSave(); });
+            $('cardNumberColor').addEventListener('input', function() { setRootVar('--card-number-color', this.value);
+                debounceSave(); });
+            $('cardTitleColorInput').addEventListener('input', function() { setRootVar('--card-title-color', this.value);
+                debounceSave(); });
+            $('cardBodyColorInput').addEventListener('input', function() { setRootVar('--card-body-color', this.value);
+                debounceSave(); });
+            $('panelRatioSlider').addEventListener('input', function() { const v = Math.max(0.28, Math.min(0.60, parseFloat(this.value) || 0.44));
+                this.value = v;
+                $('ratioVal').textContent = v.toFixed(2);
+                setRootVar('--panel-ratio', v); const dl = $('detailLeft'); const dr = $('detailRight'); if (dl && dr) { dl.style.flex = '0 0 ' + (v * 100) + '%';
+                    dr.style.flex = '1 1 ' + ((1 - v) * 100) + '%'; }
+                debounceSave(); });
+            document.addEventListener('input', function(e) { if (e.target.isContentEditable) debounceSave(); });
+
+            // 大纲视图
+            function buildOutlineText() {
+                const lines = [];
+                const slide = getActiveSlide();
+                lines.push('[标号]' + (slide?.querySelector('.title-number')?.textContent?.trim() || ''));
+                lines.push('[主标题]' + (slide?.querySelector('.title-main')?.textContent?.trim() || ''));
+                lines.push('[子标题]' + (slide?.querySelector('.title-sub')?.textContent?.trim() || ''));
+                lines.push('[概述]' + (slide?.querySelector('.overview-content')?.innerText?.trim() || ''));
+                if (currentTemplate === 'v4') {
+                    $('multiColRow')?.querySelectorAll('.multi-col-group').forEach((g, i) => {
+                        lines.push('[列' + (i + 1) + '标题]' + (g.querySelector('.col-body-title')?.textContent?.trim() || ''));
+                        lines.push('[列' + (i + 1) + '正文]' + (g.querySelector('.col-body-text')?.innerText?.trim() || ''));
+                        lines.push('[列' + (i + 1) + '图示说明]' + (g.querySelector('.image-caption')?.textContent?.trim() || ''));
+                    });
+                } else lines.push('[图示说明]' + (slide?.querySelector('.image-caption')?.textContent?.trim() || ''));
+                if (currentTemplate === 'v3') lines.push('[详述]' + ($('detailContentV3')?.innerText?.trim() || ''));
+                if (currentTemplate === 'v2') {
+                    $('contentPanel')?.querySelectorAll('.content-card').forEach((card, i) => {
+                        lines.push('[组' + (i + 1) + '标号]' + (card.querySelector('.card-number')?.textContent?.trim() || ''));
+                        lines.push('[组' + (i + 1) + '标题]' + (card.querySelector('.card-title')?.textContent?.trim() || ''));
+                        lines.push('[组' + (i + 1) + '正文]' + (card.querySelector('.card-body')?.innerText?.trim() || ''));
+                    });
+                }
+                return lines.join('\n');
+            }
+            function parseOutlineText(text) {
+                const result = { number: '', mainTitle: '', subTitle: '', overview: '', caption: '', detail: '', cards: [], cols: [] };
+                const lines = text.split('\n');
+                let currentKey = null,
+                    buffer = [];
+                const markers = ['[标号]', '[主标题]', '[子标题]', '[概述]', '[图示说明]', '[详述]'];
+                for (let i = 1; i <= 8; i++) markers.push('[组' + i + '标号]', '[组' + i + '标题]', '[组' + i + '正文]');
+                for (let i = 1; i <= 5; i++) markers.push('[列' + i + '标题]', '[列' + i + '正文]', '[列' + i + '图示说明]');
+                for (const line of lines) {
+                    let found = null,
+                        idx = -1,
+                        cont = '';
+                    for (const m of markers) { const i = line.indexOf(m); if (i !== -1 && (found === null || i < idx)) { found = m;
+                            idx = i;
+                            cont = line.substring(i + m.length); } }
+                    if (found) { if (currentKey && buffer.length) result[currentKey] = buffer.join('\n').trim();
+                        buffer = [];
+                        currentKey = found.replace(/[\[\]]/g, ''); const km = { '标号': 'number', '主标题': 'mainTitle', '子标题': 'subTitle', '概述': 'overview', '图示说明': 'caption', '详述': 'detail' };
+                        currentKey = km[currentKey] || currentKey; if (cont) buffer.push(cont); } else if (currentKey) buffer.push(line);
+                }
+                if (currentKey && buffer.length) result[currentKey] = buffer.join('\n').trim();
+                const cardMap = {},
+                    colMap = {};
+                for (const [k, v] of Object.entries(result)) {
+                    const cm = k.match(/^组(\d+)(标号|标题|正文)$/);
+                    if (cm) { const idx = parseInt(cm[1]) - 1; if (!cardMap[idx]) cardMap[idx] = { num: '', title: '', body: '' };
+                        cardMap[idx][cm[2] === '标号' ? 'num' : cm[2] === '标题' ? 'title' : 'body'] = v;
+                        delete result[k]; }
+                    const clm = k.match(/^列(\d+)(标题|正文|图示说明)$/);
+                    if (clm) { const idx = parseInt(clm[1]) - 1; if (!colMap[idx]) colMap[idx] = { title: '', body: '', caption: '', imgSrc: defaultImgSrcSmall };
+                        colMap[idx][clm[2] === '标题' ? 'title' : clm[2] === '正文' ? 'body' : 'caption'] = v;
+                        delete result[k]; }
+                }
+                result.cards = Object.values(cardMap);
+                result.cols = Object.values(colMap);
+                return result;
+            }
+            function applyOutlineToSlide(parsed) {
+                const slide = getActiveSlide();
+                if (parsed.number) { const el = slide?.querySelector('.title-number'); if (el) el.textContent = parsed.number; }
+                if (parsed.mainTitle) { const el = slide?.querySelector('.title-main'); if (el) el.textContent = parsed.mainTitle; }
+                if (parsed.subTitle) { const el = slide?.querySelector('.title-sub'); if (el) el.textContent = parsed.subTitle; }
+                if (parsed.overview) { const el = slide?.querySelector('.overview-content'); if (el) el.innerText = parsed.overview; }
+                if (parsed.caption && currentTemplate !== 'v4') { const el = slide?.querySelector('.image-caption'); if (el) el.textContent = parsed.caption; }
+                if (parsed.detail && currentTemplate === 'v3') $('detailContentV3').innerText = parsed.detail;
+                if (currentTemplate === 'v2' && parsed.cards.length) {
+                    cardCount = parsed.cards.length;
+                    $('cardCountInput').value = cardCount;
+                    const panel = $('contentPanel');
+                    panel.innerHTML = '';
+                    parsed.cards.forEach(d => {
+                        const card = document.createElement('div');
+                        card.className = 'content-card';
+                        card.innerHTML = `<div class="card-header"><span class="card-number" contenteditable="true">${d.num||''}</span><span class="card-title" contenteditable="true">${d.title||''}</span></div><div class="card-body" contenteditable="true">${d.body||''}</div>`;
+                        panel.appendChild(card);
+                    });
+                    updateCardFonts();
+                }
+                if (currentTemplate === 'v4' && parsed.cols.length) {
+                    colCount = parsed.cols.length;
+                    $('colCountInput').value = colCount;
+                    const row = $('multiColRow');
+                    row.innerHTML = '';
+                    parsed.cols.forEach((d, i) => {
+                        const group = document.createElement('div');
+                        group.className = 'multi-col-group border-visible';
+                        group.innerHTML = `<div class="multi-col-figure"><div class="image-container border-visible"><img src="${d.imgSrc||defaultImgSrcSmall}" alt="占位图"></div><div class="image-caption" contenteditable="true">${d.caption||''}</div></div><div class="multi-col-body"><div class="col-body-title" contenteditable="true">${d.title||''}</div><div class="col-body-text" contenteditable="true">${d.body||''}</div></div>`;
+                        row.appendChild(group);
+                    });
+                    updateColFonts();
+                    setTimeout(updateAllFigureHeights, 200);
+                }
+                updateOverviewMaxHeight();
+                if (currentTemplate === 'v3') updateDetailMaxHeight();
+                debounceSave();
+            }
+            $('openOutlineBtn').addEventListener('click', function() { $('outlineTextarea').value = buildOutlineText();
+                $('outlineModal').classList.add('active');
+                hideFloatingPicker(); });
+            $('cancelOutlineBtn').addEventListener('click', () => $('outlineModal').classList.remove('active'));
+            $('applyOutlineBtn').addEventListener('click', function() { applyOutlineToSlide(parseOutlineText($('outlineTextarea').value));
+                $('outlineModal').classList.remove('active'); });
+            $('outlineModal').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); });
+
+            $('downloadPptxBtn').addEventListener('click', async function() {
+                if (isGeneratingPptx) return;
+                isGeneratingPptx = true;
+                const btn = $('downloadPptxBtn');
+                btn.disabled = true;
+                btn.textContent = '⏳ 生成中...';
+                hideFloatingPicker();
+                document.querySelectorAll('[contenteditable="true"]').forEach(el => el.blur());
+                await new Promise(r => setTimeout(r, 200));
+                try {
+                    const slideOuter = document.querySelector('.slide-outer.active');
+                    const canvas = await html2canvas(slideOuter, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, logging: false });
+                    const pptx = new PptxGenJS();
+                    pptx.layout = 'LAYOUT_WIDE';
+                    pptx.addSlide().addImage({ data: canvas.toDataURL('image/png'), x: 0, y: 0, w: '100%', h: '100%' });
+                    await pptx.writeFile({ fileName: 'PPT内容页_高清导出.pptx' });
+                    showToast('PPTX下载成功！', 'success');
+                } catch (e) { showToast('生成失败', 'error'); } finally { isGeneratingPptx = false;
+                    btn.disabled = false;
+                    btn.textContent = '📥 下载PPTX'; }
+            });
+            $('clearStorageBtn').addEventListener('click', async function() { if (confirm('确定清除所有数据？')) { await dbClearAllData();
+                    location.reload(); } });
+            document.addEventListener('keydown', function(e) { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault();
+                    $('downloadPptxBtn').click(); } if (e.key === 'Escape') { hideFloatingPicker();
+                    $('outlineModal').classList.remove('active');
+                    $('addPageMenu').classList.remove('active'); } });
+            setInterval(() => { updateImageInfo(); if (currentTemplate === 'v4') updateAllFigureHeights(); }, 1500);
+
+            async function init() {
+                await openDB();
+                const gs = await dbGet(STORE_SETTINGS, 'global');
+                if (gs) applyGlobalSettings(gs);
+                let allPages = await dbGetAll(STORE_PAGES);
+                if (!allPages || allPages.length === 0) {
+                    const defaultPage = { id: genPageId(), template: 'v2', data: JSON.parse(JSON.stringify(defaultTemplateData['v2'])) };
+                    await dbPut(STORE_PAGES, defaultPage.id, defaultPage);
+                    allPages = [defaultPage];
+                }
+                pagesData = allPages;
+                activePageId = pagesData[0].id;
+                const activePage = pagesData[0];
+                currentTemplate = activePage.template || 'v2';
+                setActiveSlideOuter(currentTemplate);
+                $('templateSelect').value = currentTemplate;
+                applyPageData(ensureDefaultData(currentTemplate, activePage.data));
+                applyAllSpacings();
+                applyGlobalSettingsToDOM();
+                updateOverviewMaxHeight();
+                if (currentTemplate === 'v3') updateDetailMaxHeight();
+                applyBorderVisibility();
+                updatePanelVisibility();
+                if (currentTemplate === 'v4') { updateColFonts();
+                    setTimeout(updateAllFigureHeights, 300); }
+                if (currentTemplate === 'v2') updateCardFonts();
+                updateImageInfo();
+                renderPageTabs();
+                updateSlideLabel();
+                $('dividerColorInput').dispatchEvent(new Event('input'));
+                setTimeout(saveAllData, 500);
+            }
+            init();
+        })();
+    </script>
+</body>
+</html>
